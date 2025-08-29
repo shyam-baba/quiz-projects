@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <title>Bulk Quiz with Image & Sound</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+    #quiz-box { display: flex; justify-content: space-between; align-items: flex-start;
+      border: 1px solid #444; padding: 20px; border-radius: 10px; width: 900px; margin: auto; }
+    #left { width: 60%; text-align: left; }
+    #right img { max-width: 250px; border-radius: 8px; }
+    .option { display: block; margin: 10px 0; padding: 10px; border: 1px solid #333;
+      border-radius: 5px; cursor: default; }
+    .correct { background: lightgreen !important; }
+    #timer { font-size: 22px; margin: 15px 0; font-weight: bold; }
+    #result { margin-top: 15px; font-size: 18px; }
+  </style>
+</head>
+<body>
+
+  <h2>🔥 Bulk Auto Quiz with Image + Sound 🔥</h2>
+
+  <div id="quiz-box" style="display:none;">
+    <div id="left">
+      <div id="question"></div>
+      <div id="options"></div>
+      <div id="timer">⏳ 10 सेकंड बाकी</div>
+      <div id="result"></div>
+    </div>
+    <div id="right">
+      <img id="qImage" src="" alt="question image">
+    </div>
+  </div>
+
+  <!-- Background Music -->
+  <audio id="bgAudio" loop autoplay></audio>
+  <!-- Correct Answer Sound -->
+  <audio id="correctAudio"></audio>
+
+  <!-- PapaParse for CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <script>
+    let quizData = [];
+    let currentQ = 0, timeLeft = 10, timer;
+
+    // 👉 अगर CSV load नहीं होती तो fallback demo questions
+    const fallbackQuestions = [
+      {
+        question: "भारत की राजधानी क्या है?",
+        option1: "मुंबई",
+        option2: "कोलकाता",
+        option3: "नई दिल्ली",
+        option4: "चेन्नई",
+        correct: "3",
+        image: "delhi.jpg"
+      },
+      {
+        question: "2 + 2 कितना होगा?",
+        option1: "3",
+        option2: "4",
+        option3: "5",
+        option4: "6",
+        correct: "2",
+        image: "math.png"
+      },
+      {
+        question: "ताजमहल कहाँ है?",
+        option1: "दिल्ली",
+        option2: "आगरा",
+        option3: "जयपुर",
+        option4: "लखनऊ",
+        correct: "2",
+        image: "tajmahal.jpg"
+      }
+    ];
+
+    window.onload = () => {
+      Papa.parse("questions.csv", {
+        download: true,
+        header: true,
+        complete: function(results) {
+          quizData = results.data.filter(q => q.question); // खाली लाइन हटाओ
+          if (quizData.length === 0) {
+            quizData = fallbackQuestions; // fallback use करो
+          }
+          startQuiz();
+        },
+        error: function() {
+          quizData = fallbackQuestions; // fallback use करो
+          startQuiz();
+        }
+      });
+    };
+
+    function startQuiz() {
+      document.getElementById("quiz-box").style.display = "flex";
+      document.getElementById("bgAudio").src = "bg.mp3";
+      document.getElementById("bgAudio").volume = 0.2;
+      document.getElementById("correctAudio").src = "correct.mp3";
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      document.getElementById("result").innerText = "";
+      timeLeft = 10;
+
+      const qData = quizData[currentQ];
+      document.getElementById("question").innerHTML = `<h3>${qData.question}</h3>`;
+      document.getElementById("qImage").src = qData.image;
+
+      const optionsDiv = document.getElementById("options");
+      optionsDiv.innerHTML = "";
+      for (let i = 1; i <= 4; i++) {
+        let div = document.createElement("div");
+        div.classList.add("option");
+        div.innerText = qData[`option${i}`];
+        optionsDiv.appendChild(div);
+      }
+
+      document.getElementById("timer").innerText = `⏳ ${timeLeft} सेकंड बाकी`;
+
+      clearInterval(timer);
+      timer = setInterval(() => {
+        document.getElementById("timer").innerText = `⏳ ${timeLeft} सेकंड बाकी`;
+        timeLeft--;
+        if (timeLeft < 0) {
+          clearInterval(timer);
+          autoHighlight();
+          setTimeout(nextQuestion, 2000);
+        }
+      }, 1000);
+    }
+
+    function autoHighlight() {
+      const qData = quizData[currentQ];
+      let options = document.querySelectorAll(".option");
+      let correctIndex = parseInt(qData.correct) - 1;
+      if (options[correctIndex]) {
+        options[correctIndex].classList.add("correct");
+      }
+      document.getElementById("result").innerText = "✅ सही उत्तर दिखा दिया गया";
+      document.getElementById("correctAudio").play();
+    }
+
+    function nextQuestion() {
+      currentQ++;
+      if (currentQ < quizData.length) {
+        loadQuestion();
+      } else {
+        document.getElementById("quiz-box").innerHTML = "<h2>🎉 क्विज़ समाप्त! धन्यवाद 🙏</h2>";
+      }
+    }
+  </script>
+</body>
+</html>
